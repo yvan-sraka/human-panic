@@ -153,14 +153,10 @@ impl Default for PanicStyle {
 /// Utility function that prints a message to our human users
 #[cfg(feature = "color")]
 pub fn print_msg<P: AsRef<Path>>(file_path: Option<P>, meta: &Metadata) -> IoResult<()> {
-    use std::io::Write as _;
-
     let stderr = anstream::stderr();
     let mut stderr = stderr.lock();
 
-    write!(stderr, "{}", anstyle::AnsiColor::Red.render_fg())?;
     write_msg(&mut stderr, file_path, meta)?;
-    write!(stderr, "{}", anstyle::Reset.render())?;
 
     Ok(())
 }
@@ -180,40 +176,35 @@ fn write_msg<P: AsRef<Path>>(
     file_path: Option<P>,
     meta: &Metadata,
 ) -> IoResult<()> {
-    let (_version, name, authors, homepage) =
+    let (_version, _name, _authors, _homepage) =
         (&meta.version, &meta.name, &meta.authors, &meta.homepage);
-
-    writeln!(buffer, "Well, this is embarrassing.\n")?;
+    let bold = anstyle::Style::new().bold().render();
+    let normal = anstyle::Reset.render();
     writeln!(
         buffer,
-        "{name} had a problem and crashed. To help us diagnose the \
-     problem you can send us a crash report.\n"
+        "\n---------- Internal Compiler Error (ICE) ----------\n"
     )?;
     writeln!(
         buffer,
-        "We have generated a report file at \"{}\". Submit an \
-     issue or email with the subject of \"{} Crash Report\" and include the \
-     report as an attachment.\n",
+        "Bee had a problem and crashed. To help us diagnose the problem you can send us a crash report.\n"
+    )?;
+    writeln!(
+        buffer,
+        "We have generated a report file at {bold}{}{normal}\n",
         match file_path {
             Some(fp) => format!("{}", fp.as_ref().display()),
             None => "<Failed to store file to disk>".to_string(),
-        },
-        name
+        }
     )?;
-
-    if !homepage.is_empty() {
-        writeln!(buffer, "- Homepage: {homepage}")?;
-    }
-    if !authors.is_empty() {
-        writeln!(buffer, "- Authors: {authors}")?;
-    }
     writeln!(
         buffer,
-        "\nWe take privacy seriously, and do not perform any \
-     automated error collection. In order to improve the software, we rely on \
-     people to submit reports.\n"
+        "Submit an email to <{bold}devel@bee-lang.org{normal}> and include the report.\n"
     )?;
-    writeln!(buffer, "Thank you kindly!")?;
+    writeln!(
+        buffer,
+        "We take privacy seriously, and do not perform any automated error collection. In order to improve the software, we rely on people to submit reports.\n"
+    )?;
+    writeln!(buffer, "Thank you kindly!\n")?;
 
     Ok(())
 }
